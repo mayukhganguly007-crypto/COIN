@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Citizen profile and balance information.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "coinBalance": { "type": "number", "description": "Accumulated e-coins" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "coinBalance"]
+    },
+    "Submission": {
+      "title": "Information Submission",
+      "description": "Real-time information provided by the citizen.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "category": { "type": "string", "enum": ["transport", "loan", "local_issue", "other"] },
+        "content": { "type": "string", "description": "The actual information provided" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "reward": { "type": "number", "description": "E-coins earned for this submission" },
+        "status": { "type": "string", "enum": ["pending", "verified", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "category", "content", "reward", "status"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Record of e-coin earnings or future conversions.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "type": { "type": "string", "enum": ["earning", "conversion"] },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "amount", "type"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile and balance"
+    },
+    "/submissions/{submissionId}": {
+      "schema": "Submission",
+      "description": "Citizen information submissions"
+    },
+    "/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "E-coin transaction history"
+    }
+  }
+}

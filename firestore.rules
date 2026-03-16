@@ -1,0 +1,102 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Fields:
+    //   - uid: string (required)
+    //   - displayName: string
+    //   - email: string
+    //   - coinBalance: number (required)
+    //   - createdAt: timestamp
+    //
+    // Collection: submissions
+    // Fields:
+    //   - userId: string (required)
+    //   - category: string (enum: transport, loan, local_issue, other)
+    //   - content: string (required, max 1000 chars)
+    //   - reward: number (required)
+    //   - status: string (enum: pending, verified, rejected)
+    //   - createdAt: timestamp
+    //
+    // Collection: transactions
+    // Fields:
+    //   - userId: string (required)
+    //   - amount: number (required)
+    //   - type: string (enum: earning, conversion)
+    //   - description: string
+    //   - createdAt: timestamp
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "mayukhganguly007@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'coinBalance']) &&
+             data.uid is string &&
+             data.coinBalance is number &&
+             data.coinBalance >= 0;
+    }
+
+    function isValidSubmission(data) {
+      return data.keys().hasAll(['userId', 'category', 'content', 'reward', 'status']) &&
+             data.userId == request.auth.uid &&
+             data.category in ['transport', 'loan', 'local_issue', 'other'] &&
+             data.content is string && data.content.size() > 0 && data.content.size() <= 1000 &&
+             data.reward is number &&
+             data.status in ['pending', 'verified', 'rejected'];
+    }
+
+    function isValidTransaction(data) {
+      return data.keys().hasAll(['userId', 'amount', 'type']) &&
+             data.userId == request.auth.uid &&
+             data.amount is number &&
+             data.type in ['earning', 'conversion'];
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && (!('role' in request.resource.data) || isAdmin());
+      allow update: if (isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.uid == resource.data.uid && (!('role' in request.resource.data) || request.resource.data.role == resource.data.role)) || isAdmin();
+    }
+
+    match /submissions/{submissionId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidSubmission(request.resource.data);
+      allow update, delete: if isAdmin();
+    }
+
+    match /transactions/{transactionId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidTransaction(request.resource.data);
+      allow update, delete: if isAdmin();
+    }
+
+    match /test/connection {
+      allow read: if true;
+    }
+  }
+}
