@@ -1,5 +1,7 @@
 {
-  "name": "",
-  "description": "",
-  "requestFramePermissions": []
+  "name": "Coin & Citizen",
+  "description": "A crowdsourced data marketplace where citizens earn e-coins by providing real-time information on transport, finance, and local issues, redeemable for crypto in the future.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
 }
